@@ -4,38 +4,69 @@ namespace Imagesoptimizer;
 
 class Images {
 
-    static public $imagesDefault = "";
-
     function __construct() {
 
-    } 
-    function Optimizer($filePath, $toFilePath = null) {
-        $url = $filePath;
-        if (file_exists($url)) {
-            $imagesInfor = getimagesize($url);
-            if ($imagesInfor) {
-                $filePath = "/" . $filePath;
-                $w = $imagesInfor[0];
-                $h = $imagesInfor[1];
-                $DuongDanHinh = explode("/", $filePath);
-                $TenHinhFull = end($DuongDanHinh);
-                $aTenHinh = explode(".", $TenHinhFull);
-                $TenHinh = reset($aTenHinh);
-                $PhanMoRong = end($aTenHinh);
-                $ThuMuc = explode($TenHinhFull, $filePath);
-                $ThuMuc = reset($ThuMuc);
-                $ThuMuc = substr($ThuMuc, 1);
-                try {
-                    $TenHinhnew = $this->create_thumb1($TenHinhFull, $w, $h, $ThuMuc, $TenHinh, 2);
-                    return "/" . $ThuMuc . $TenHinhnew;
-                } catch (Exception $ex) {
-                    return self::$imagesDefault;
-                }
-            }
+    }
+
+    static function OptimizerFolder($dir) {
+        $a = [];
+        self::redDirectoryByPath($dir, $a, true);
+        foreach ($a as $fullPath) {
+            self::Optimizer($fullPath);
         }
     }
- 
-    function create_thumb1($file, $width, $height, $folder, $file_name, $zoom_crop = '2') {
+
+    private static function redDirectoryByPath($dir, &$a, $fullDir = false) {
+        if (!is_dir($dir)) {
+            return;
+        }
+        if ($dh = opendir($dir)) {
+            while (($file = readdir($dh)) !== false) {
+                if ($file != "." && $file != "..") {
+                    $fileName = $dir . $file;
+                    if (is_file($fileName)) {
+                        $a[] = $fullDir == true ? $fileName : $file;
+                    } else {
+                        self::redDirectoryByPath($dir . $file . "/", $a, $fullDir);
+                    }
+                }
+            }
+            closedir($dh);
+        }
+    }
+
+    static function Optimizer($filePath, $toFilePath = null, $w = null, $h = null) {
+        ini_set('memory_limit', '-1');
+        $url = $filePath;
+        try {
+            if (file_exists($url)) {
+                $imagesInfor = getimagesize($url);
+                if ($imagesInfor) {
+                    $filePath = "/" . $filePath;
+                    if ($w == null && $h == null) {
+                        $w = $imagesInfor[0];
+                        $h = $imagesInfor[1];
+                    }
+                    $DuongDanHinh = explode("/", $filePath);
+                    $TenHinhFull = end($DuongDanHinh);
+                    $aTenHinh = explode(".", $TenHinhFull);
+                    $TenHinh = reset($aTenHinh);
+                    $PhanMoRong = end($aTenHinh);
+                    $ThuMuc = explode($TenHinhFull, $filePath);
+                    $ThuMuc = reset($ThuMuc);
+                    $ThuMuc = substr($ThuMuc, 1);
+                    $TenHinhnew = self::create_thumb1($TenHinhFull, $w, $h, $ThuMuc, $TenHinh, 2, $toFilePath);
+                    return $ThuMuc . $TenHinhnew;
+                }
+            } else {
+                throw new \Exception("file is not exists.");
+            }
+        } catch (Exception $ex) {
+            return null;
+        }
+    }
+
+    private static function create_thumb1($file, $width, $height, $folder, $file_name, $zoom_crop = '2', $toFilePath = null) {
         $new_width = $width;
         $Dai = $width;
         $new_height = $height;
@@ -94,10 +125,8 @@ class Images {
         // create a new true color image
         $canvas = imagecreatetruecolor($new_width, $new_height);
         imagealphablending($canvas, false);
-
         // Create a new transparent color for image
         $color = imagecolorallocatealpha($canvas, 255, 255, 255, 127);
-
         // Completely fill the background of the new image with allocated color.
         imagefill($canvas, 0, 0, $color);
         // scale down and add borders
@@ -157,13 +186,15 @@ class Images {
 
         $new_file = $file_name . '.' . $image_ext;
 
+        if ($toFilePath == null) {
+            $toFilePath = $folder . $new_file;
+        }
         if ($func == 'imagejpeg')
-            $func($canvas, $folder . $new_file, 72);
+            $func($canvas, $toFilePath, 72);
         else
-            $func($canvas, $folder . $new_file, 5);
+            $func($canvas, $toFilePath, 5);
         return $new_file;
     }
- 
 
 }
 
