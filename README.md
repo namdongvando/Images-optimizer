@@ -13,7 +13,7 @@ Composer is the easiest way to manage dependencies in your project. Create a fil
 And run Composer to install Imagesoptimizer:
 
 ```bash
-composer require namdongvando/imagesoptimizer
+composer require namdongvando/imagesoptimizer 
 ```
 
 ## Code Samples
